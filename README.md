@@ -1,7 +1,19 @@
-# chatgpt-stealth-assistant
+ChatGPT Invisivel para macOS
+Aplicativo desktop nativo desenvolvido em Python utilizando o framework PyObjC (AppKit e WebKit), projetado para executar o ChatGPT em uma janela segura com recursos avançados de automação de fluxo, incluindo OCR de tela via inteligência artificial nativa do sistema e injeção de comandos.
+
+Visão Geral do Projeto
 O ChatGPT Invisível para macOS é uma ferramenta de produtividade projetada para integrar o acesso ao ChatGPT diretamente ao fluxo de trabalho do sistema operacional de forma discreta, rápida e automatizada.
 
-Aplicativo desktop nativo desenvolvido em Python utilizando o framework PyObjC (AppKit e WebKit), projetado para executar o ChatGPT em uma janela segura com recursos avançados de automação de fluxo, incluindo OCR de tela via inteligência artificial nativa do sistema e injeção de comandos.
+Pilares Técnicos e Funcionalidades
+Privacidade Visual: Utiliza a propriedade nativa NSWindowSharingNone do AppKit para garantir que a janela da aplicação permaneça completamente oculta em gravações de tela, capturas do sistema ou transmissões de vídeo.
+
+Leitura de Texto por OCR Nativo: Monitora a área de transferência do sistema em segundo plano e emprega o Apple Vision Framework para realizar o reconhecimento ótico de caracteres em capturas de tela instantâneas (Cmd + Ctrl + Shift + 4).
+
+Monitoramento de Texto: Detecta cópias diretas de texto (Cmd + C) em segundo plano para envio imediato.
+
+Injeção de Comandos (WebKit): Manipula diretamente o DOM da interface web do ChatGPT por meio de scripts JavaScript injetados, preenchendo o prompt, simulando o evento de envio e ativando o mecanismo de rolagem automática (auto-scroll).
+
+Auto-Scroll Dinâmico: Um temporizador executa varreduras periódicas nos elementos de rolagem da página para garantir que a resposta gerada pelo modelo seja acompanhada automaticamente até o término da geração.
 
 Arquitetura e Funcionamento
 O sistema opera através de um loop contínuo em segundo plano gerenciado pelos componentes nativos do macOS:
@@ -10,15 +22,11 @@ Monitoramento do Clipboard: Um timer do AppKit (NSTimer) verifica a cada 1 segun
 
 Identificação e Tratamento de Conteúdo:
 
-Texto Direto: Caso o conteúdo copiado (Cmd + C) seja texto, ele é capturado diretamente.
+Texto Direto: Caso o conteúdo copiado seja texto, ele é capturado diretamente.
 
-Captura de Tela (OCR): Caso seja um print de tela (Cmd + Ctrl + Shift + 4), a imagem é extraída da área de transferência, convertida para NSBitmapImageRep e submetida ao framework Vision (VNImageRequestHandler + VNRecognizeTextRequest) para extração de texto de alta precisão com suporte a múltiplos idiomas (pt-BR e en-US).
+Captura de Tela (OCR): Caso seja um print de tela, a imagem é extraída da área de transferência, convertida para NSBitmapImageRep e submetida ao framework Vision para extração de texto de alta precisão com suporte a múltiplos idiomas (pt-BR e en-US).
 
-Injeção de Automação (WebKit): O conteúdo obtido é injetado programaticamente no elemento DOM do campo de texto do ChatGPT (WKWebView) através da execução de scripts JavaScript. Os eventos de input e change são disparados nativamente e o botão de envio é ativado e acionado de forma automatizada.
-
-Auto-Scroll Dinâmico: Um temporizador executa varreduras periódicas nos elementos de rolagem da página para garantir que a resposta gerada pelo modelo seja acompanhada automaticamente até o término da geração.
-
-Privacidade Visual: A janela é configurada com a política de compartilhamento NSWindowSharingNone, garantindo que o conteúdo permaneça oculto em capturas de tela do sistema ou transmissões de vídeo.
+Injeção de Automação: O conteúdo obtido é injetado programaticamente no elemento DOM do campo de texto do ChatGPT (WKWebView) através da execução de scripts JavaScript.
 
 Trechos Principais do Código
 1. Processamento de OCR com o Framework Vision
@@ -30,28 +38,32 @@ def ocr_from_cg_image(self, cg_image):
         handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
         request = Vision.VNRecognizeTextRequest.alloc().init()
         request.setRecognitionLevel_(Vision.VNRequestTextRecognitionLevelAccurate)
+        
         try:
             request.setRecognitionLanguages_(["pt-BR", "en-US"])
         except Exception:
             pass
+
         success, error = handler.performRequests_error_([request], None)
         if not success:
             return ""
+
         results = []
         for result in request.results():
             top_candidate = result.topCandidates_(1)[0]
             results.append(top_candidate.string())
+
         return "\n".join(results)
     except Exception as e:
         print(f"Erro no OCR: {e}")
         return ""
-        
 2. Injeção de JavaScript para Auto-Prompt e Auto-Scroll
 Responsável por manipular o DOM da interface web do ChatGPT, preencher o prompt, simular o clique no botão de envio e forçar a rolagem contínua para baixo:
 
-
+Python
 def send_to_chatgpt(self, text):
     json_text = json.dumps(text)
+    
     js_code = f"""
     (function() {{
         let promptText = {json_text};
@@ -65,6 +77,7 @@ def send_to_chatgpt(self, text):
             }}
             area.dispatchEvent(new Event('input', {{ bubbles: true }}));
             area.dispatchEvent(new Event('change', {{ bubbles: true }}));
+            
             setTimeout(() => {{
                 let btn = document.querySelector('button[data-testid="send-button"]') || 
                           document.querySelector('button[data-testid="fruitjuice-send-button"]') ||
@@ -72,12 +85,14 @@ def send_to_chatgpt(self, text):
                           document.querySelector('button[aria-label*="Enviar"]');
                 if (btn) {{
                     btn.disabled = false;
-                    btn.click();                   
+                    btn.click();
+                    
                     let scrollCount = 0;
                     let scrollInterval = setInterval(() => {{
                         window.scrollTo(0, document.body.scrollHeight);
                         let scrollers = document.querySelectorAll('main, [class*="react-scroll-to-bottom"], [class*="overflow-y-auto"]');
-                        scrollers.forEach(el => {{ el.scrollTop = el.scrollHeight; }});                        
+                        scrollers.forEach(el => {{ el.scrollTop = el.scrollHeight; }});
+                        
                         scrollCount++;
                         if (scrollCount > 60) clearInterval(scrollInterval);
                     }}, 500);
@@ -87,7 +102,6 @@ def send_to_chatgpt(self, text):
     }})();
     """
     self.web_view.evaluateJavaScript_completionHandler_(js_code, None)
-    
 Requisitos do Sistema
 Sistema Operacional: macOS (compatível com arquitetura Intel e Apple Silicon M1/M2/M3/M4)
 
@@ -101,18 +115,15 @@ Bash
 cd "$HOME"
 mkdir chatgpt_invisivel
 cd chatgpt_invisivel
-
 2. Configurar o ambiente virtual
 Bash
 python3 -m venv venv
 source venv/bin/activate
-
-4. Instalar as dependências do PyObjC
+3. Instalar as dependências do PyObjC
 Bash
 pip install --upgrade pip
 pip install pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit pyobjc-framework-Vision pyobjc-framework-Quartz
-
-5. Executar a aplicação
+4. Executar a aplicação
 Salve o código principal como chatgpt_invisivel.py dentro da pasta do projeto e inicie o script:
 
 Bash
