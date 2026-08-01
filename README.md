@@ -33,7 +33,8 @@ Trechos Principais do Código
 Este método recebe um CGImage obtido do clipboard e utiliza o motor de reconhecimento de texto do macOS para extrair o conteúdo textual:
 
 Python
-def ocr_from_cg_image(self, cg_image):
+
+    def ocr_from_cg_image(self, cg_image):
     try:
         handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
         request = Vision.VNRecognizeTextRequest.alloc().init()
@@ -61,9 +62,9 @@ def ocr_from_cg_image(self, cg_image):
 Responsável por manipular o DOM da interface web do ChatGPT, preencher o prompt, simular o clique no botão de envio e forçar a rolagem contínua para baixo:
 
 Python
-def send_to_chatgpt(self, text):
+
+    def send_to_chatgpt(self, text):
     json_text = json.dumps(text)
-    
     js_code = f"""
     (function() {{
         let promptText = {json_text};
@@ -112,19 +113,28 @@ Instalação e Execução
 Abra o Terminal e execute os comandos abaixo:
 
 Bash
-cd "$HOME"
-mkdir chatgpt_invisivel
-cd chatgpt_invisivel
+
+    cd "$HOME"
+    mkdir chatgpt_invisivel
+    cd chatgpt_invisivel
+    
 2. Configurar o ambiente virtual
+   
 Bash
-python3 -m venv venv
-source venv/bin/activate
-3. Instalar as dependências do PyObjC
+
+    python3 -m venv venv
+    source venv/bin/activate
+    
+4. Instalar as dependências do PyObjC
+   
 Bash
-pip install --upgrade pip
-pip install pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit pyobjc-framework-Vision pyobjc-framework-Quartz
-4. Executar a aplicação
+
+    pip install --upgrade pip
+    pip install pyobjc-core pyobjc-framework-Cocoa pyobjc-framework-WebKit pyobjc-framework-Vision pyobjc-framework-Quartz
+    
+6. Executar a aplicação
 Salve o código principal como chatgpt_invisivel.py dentro da pasta do projeto e inicie o script:
 
 Bash
-python chatgpt_invisivel.py
+
+    python chatgpt_invisivel.py
